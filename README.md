@@ -2,7 +2,7 @@ This repository contains all the workflows necessary to update CheckM2 and re-tr
 
 The workflow is provided for reference and transparency, but updating CheckM2 and its models will be done centrally by the CheckM2 team and new releases will be generated on the CheckM2 github (https://github.com/chklovski/CheckM2). 
 
-To update CheckM2 models, you will need the CheckM2 environment as well as have bbmap and zenodo_backpack installed (both available from conda). 
+To update CheckM2 models, you will need the CheckM2 environment as well as have bbmap and zenodo_backpack installed (both available from conda). The workflow uses basic external bash commands and a bash script so you will need a linux environment.  
 
 To run this workflow, you will need to provide your new, high-quality genomes in .faa (protein) format. Please make sure to manually curate them to ensure only high-quality, complete, uncontaminated genomes are provided when retraining CheckM2 models. Generally this will consist of adding all new genomes added to RefSeq since the last CheckM2 model generation, and making sure to exclude any genomes that are not high quality (fragmented, frameshifted, SAGs, incomplete MAGs, etc.)
 
