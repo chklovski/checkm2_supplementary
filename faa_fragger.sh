@@ -14,7 +14,7 @@ echo "Calling genome "$genomeName
 #genome_chunk=$((charcount/chunkcount))
 # echo "Splitting genome files into chunks of" $genome_chunk "base-pairs..."
 echo "Randomly sampling genome at 5% completeness intervals pieces"
-module load bbmap
+#module load bbmap
 # `reformat.sh in=$1 out=./fragged_genome.faa breaklength=$genome_chunk` >> log.txt
 rm -rf "fragged_"$genomeName
 mkdir "fragged_"$genomeName
