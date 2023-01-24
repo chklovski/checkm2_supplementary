@@ -2,6 +2,8 @@ This repository contains all the workflows necessary to update CheckM2 and re-tr
 
 The workflow is provided for reference and transparency, but updating CheckM2 and its models will be done centrally by the CheckM2 team and new releases will be generated on the CheckM2 github (https://github.com/chklovski/CheckM2). 
 
+For general information, the full_feature_vector_list.tsv consists of all input vectors that are used in CheckM2 as well as their arrangement. Neural networks only use the first 20021 of these vectors, while the gradient boost models use 21241. 
+
 To update CheckM2 models, you will need the CheckM2 environment as well as have bbmap and zenodo_backpack installed (both available from conda). 
 
 To run this workflow, you will need to provide your new, high-quality genomes in .faa (protein) format. Please make sure to manually curate them to ensure only high-quality, complete, uncontaminated genomes are provided when retraining CheckM2 models. 
