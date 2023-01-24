@@ -4,7 +4,7 @@ The workflow is provided for reference and transparency, but updating CheckM2 an
 
 To update CheckM2 models, you will need the CheckM2 environment as well as have bbmap and zenodo_backpack installed (both available from conda). 
 
-To run this workflow, you will need to provide your new, high-quality genomes in .faa (protein) format. Please make sure to manually curate them to ensure only high-quality, complete, uncontaminated genomes are provided when retraining CheckM2 models. 
+To run this workflow, you will need to provide your new, high-quality genomes in .faa (protein) format. Please make sure to manually curate them to ensure only high-quality, complete, uncontaminated genomes are provided when retraining CheckM2 models. Generally this will consist of adding all new genomes added to RefSeq since the last CheckM2 model generation, and making sure to exclude any genomes that are not high quality (fragmented, frameshifted, SAGs, incomplete MAGs, etc.)
 
 This workflow consists of downloading synthetic genomes generated in the previous CheckM2 release version from zenodo via zenodobackpack, generating new synthetic genomes from provided complete genomes, merging old and new input vectors in a sparse format, and then retraining three new models on the new merged input vectors - a completeness prediction model using gradient boost, a contamination prediction model using gradient boost, and a completeness prediction model using neural networks. 
 
