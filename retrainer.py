@@ -62,12 +62,20 @@ current_dir = os.getcwd()
 good_genome_folder = f'{current_dir}/new_genomes/'
 
 
-
 #let us acquire external data
 
+
+logging.info(f'Acquiring old training data from DOI: {DOI}') 
 backpack_downloader = zenodo_backpack.ZenodoBackpackDownloader()
-backpack = backpack_downloader.download_and_extract(f'{current_dir}', f'{DOI}')
-shutil.move(f'{current_dir}/old_vectors.zb/payload_directory', f'{current_dir}/old_vectors/')
+backpack = backpack_downloader.download_and_extract(f'{current_dir}', f'{DOI}', progress_bar=True)
+
+file_names = os.listdir(f'{current_dir}/old_vectors.zb/payload_directory')
+    
+for file_name in file_names:
+    shutil.move(os.path.join(f'{current_dir}/old_vectors.zb/payload_directory', file_name), f'{current_dir}/old_vectors/')
+
+logging.info('Data acquired') 
+
 
 #tensorflow can't handle sparse matrices without using batch generators
 def batch_generator(X, y, batch_size, samples_per_epoch, CONVOLUTIONAL=False):
@@ -126,9 +134,10 @@ def returnPredictors(dataset, mode):
 
 # IMPORTANT: your new good genomes must be protein files (.faa) ideally called by prodigal
 logging.info('Making synthetic genomes.')
+
 try:
     #this will create a series of fragged_* folders in good_genome_folder
-    cmd = f"cd {current_dir}/{good_genome_folder}; mkdir output; readlink -f *.faa | while read -r genome; do bash ../faa_fragger.sh $genome; done"
+    cmd = f"cd {good_genome_folder}; mkdir output; readlink -f *.faa | while read -r genome; do bash ../faa_fragger.sh $genome; done"
 
     logging.debug(cmd)
     subprocess.call(cmd, shell=True)
@@ -140,7 +149,7 @@ except Exception as e:
 logging.info('Running CheckM2 and dumping input vectors.')
 
 try:    
-    cmd = f"cd {current_dir}/{good_genome_folder}; for i in fragged_*; do checkm2 predict -i $i -o output/$i -t {nthreads} -x faa --genes --dbg_vectors --remove_intermediates; done"
+    cmd = f"cd {good_genome_folder}; for i in fragged_*; do checkm2 predict -i $i -o output/$i -t {nthreads} -x faa --genes --dbg_vectors --remove_intermediates; done"
     
     logging.debug(cmd)
     subprocess.call(cmd, shell=True)
@@ -153,13 +162,14 @@ except Exception as e:
 logging.info('Removing generated synthetic genomes')
 
 try:    
-    cmd = f"cd {current_dir}/{good_genome_folder}; for i in fragged_*; do rm -rf $i; done"
+    cmd = f"cd {good_genome_folder}; for i in fragged_*; do rm -rf $i; done"
     
     logging.debug(cmd)
     subprocess.call(cmd, shell=True)
 except Exception as e:
     logging.error('An error occured while running {}: {}'.format(cmd, e))
     sys.exit(1)
+
 
 
 #now read in pickled vectors and concatenate them
@@ -193,15 +203,15 @@ for folder in cm2_folders:
     for pickle in pickles:
         pickled_vector = pd.read_pickle(f'{good_genome_folder}/output/{folder}/{pickle}')
         pickled_vector['Completeness'] = pickled_vector['Name'].apply(lambda x: x.split('_pc_complete')[0].split('_')[-1]).astype(float)
-        pickled_vector['Contamination'] = pickled_vector['Name'].apply(lambda x: x.split('pc_contaminated')[0].split('_pc_completeXXX')[-1])
+        pickled_vector['Contamination'] = pickled_vector['Name'].apply(lambda x: x.split('pc_contaminated')[0].split('_pc_completeXXX')[-1]).astype(float)
         interim_pickled_list.append(pickled_vector)
     
     full_pickles = pd.concat(interim_pickled_list)
-#    full_pickles['ActualName'] = full_pickles['Name'].apply(lambda x: x.split('pc_completeXXX')[0].split('_')[-1])
     if full_pickles[(full_pickles['Completeness'] == 100) & (full_pickles['Completeness'] == 100)]['AALength'].values[0] < cont_threshold:
         exclude_from_cont = True
     #make raw comp vectors
-    
+
+
     del full_pickles['Name']
     comp_raw_vectors.append(csr_matrix(full_pickles.iloc[:, :-2].values))
     comp_raw_labels.append(np.array(full_pickles['Completeness'].values))
@@ -235,6 +245,8 @@ logging.info(f'Concatenating new feature vectors with old existing vectors in {c
 
 
 old_release_loc = f'{current_dir}/old_vectors/'
+
+
 
 previous_release_version = listdir(old_release_loc)
 previous_release_version = [f for f in previous_release_version if f.endswith('.npy')][0].split('_')[1]
@@ -354,8 +366,6 @@ my_callbacks = [
 
 train_samples = comp_scaled_vectors.shape[0]
 
-print(comp_scaled_vectors.shape)
-print(train_labels.shape)
 
 model.fit(batch_generator(comp_scaled_vectors, train_labels, batch_size,train_samples, True),
                     steps_per_epoch=(int(train_samples/batch_size)), epochs=epochs_num, callbacks=my_callbacks, verbose=1)
@@ -499,15 +509,15 @@ np.save(f'{vectors_out_path}/all_{new_GTDB_version}_raw_contlabels.npy', cont_ra
 
 old_ref_data = scipy.sparse.load_npz(f'{old_release_loc}/min_ref_rsdata_{previous_release_version}.npz')
 
-refdata = full_pickles[full_pickles['Completeness'] == 100]
-refdata = refdata[refdata['Contamination'] == 0]
+refdata = full_pickles[full_pickles['Completeness'] > 99.9999]
+refdata = refdata[refdata['Contamination'] < 0.0001]
 refdata = csr_matrix(scaler.transform(refdata.iloc[:, :-2].values))
 new_ref_vectors =  vstack([old_ref_data, refdata])
 
 scipy.sparse.save_npz(f'{vectors_out_path}/min_ref_rsdata_{new_GTDB_version}.npz', new_ref_vectors)
 
 #need a copy for the database as well as a copy for the CheckM2 update
-shutil.copy(f'{vectors_out_path}/min_ref_rsdata_{new_GTDB_version}.npz', f'{new_models}/min_ref_rsdata_{new_GTDB_version}.npz')
+shutil.copy(f'{vectors_out_path}/min_ref_rsdata_{new_GTDB_version}.npz', f'{current_dir}/new_models/min_ref_rsdata_{new_GTDB_version}.npz')
 
 
 #move test data from old_vectors to new_vectors
